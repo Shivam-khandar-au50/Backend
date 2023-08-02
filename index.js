@@ -19,10 +19,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
-mongoose.connect(
-  "mongodb+srv://capProject:hello@cluster0.zc9ypbh.mongodb.net/test"
-);
-
+// user signup route
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -36,6 +33,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
+// user login route
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const userDoc = await User.findOne({ username });
@@ -57,6 +55,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// get the current user profile from cookies
 app.get("/profile", (req, res) => {
   const { token } = req.cookies;
   jwt.verify(token, secret, {}, (err, info) => {
@@ -65,10 +64,12 @@ app.get("/profile", (req, res) => {
   });
 });
 
+// user logout route
 app.post("/logout", (req, res) => {
   res.cookie("token", "").json("ok")
 });
 
+// create a post
 app.post("/post", uplodeMiddleware.single("file"), async (req, res) => {
   const { originalname, path } = req.file;
   const parts = originalname.split(".");
@@ -90,40 +91,9 @@ app.post("/post", uplodeMiddleware.single("file"), async (req, res) => {
 
     res.json(postDoc);
   });
-});
+});  
 
-// app.put("/post", uplodeMiddleware.single("file"), async (req, res) => {
-//   let newPath = null;
-//   if (req.file) {
-//     const { originalname, path } = req.file;
-//     const parts = originalname.split(".");
-//     const ext = parts[parts.length - 1];
-//     const newPath = path + "." + ext;
-//     fs.renameSync(path, newPath);
-//   }
-
-//   const {token} = req.cookies;
-//   jwt.verify(token, secret, {}, async (err, info) => {
-//     if (err) throw err;
-//     const { id,title, summary, content } = req.body;
-//     const postDoc = await Post.findById(id);
-//     const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(info.id);
-//     if(!isAuthor) {
-//     return res.status(400).json('you are not the admin');
-//       // throw 'you are not the admin'
-//     }
-//      await postDoc.update({
-//       title,
-//        summary,
-//        content,
-//        cover:newPath? newPath :postDoc.cover,
-//      })
-
-//      res.json(postDoc)
-   
-//   });
-// });
-
+// post update route
 app.put("/post", uplodeMiddleware.single("file"), async (req, res) => {
   let newPath = null;
   if (req.file) {
@@ -155,6 +125,7 @@ app.put("/post", uplodeMiddleware.single("file"), async (req, res) => {
   });
 });
 
+// get all the posts
 app.get("/post", async (req, res) => {
   res.json(
     await Post.find()
@@ -164,13 +135,19 @@ app.get("/post", async (req, res) => {
   );
 });
 
+// get a specific post by id
 app.get("/post/:id", async (req, res) => {
   const { id } = req.params;
   const postDoc = await Post.findById(id).populate("author", ["username"]);
   res.json(postDoc);
 });
 
-app.listen(4000);
 
-//mongo  password CapProject
-//mongodb+srv://capProject:<CapProject>@cluster0.zc9ypbh.mongodb.net/test
+// connet to db and listen to app
+const PORT = process.env.PORT || 4000;
+mongoose.connect(
+  "mongodb+srv://capProject:hello@cluster0.zc9ypbh.mongodb.net/test"
+).then(() => {
+  console.log("mongodb connected")
+  app.listen(PORT, console.log(`server is live ${PORT}`)
+}).catch((error) => console.error("error while connecting", error))
