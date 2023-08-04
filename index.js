@@ -12,7 +12,6 @@ const fs = require("fs");
 
 const app = express();
 const salt = bcrypt.genSaltSync(10);
-const secret = "niugcigcinpciucgr09237r9ttcybcy89t";
 
 app.use(cors({ credentials: true, origin: "https://newsadmin.onrender.com" }));
 app.use(express.json());
@@ -42,7 +41,7 @@ app.post("/login", async (req, res) => {
   }
   const passOk = bcrypt.compareSync(password, userDoc.password);
   if (passOk) {
-    jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
+    jwt.sign({ username, id: userDoc._id }, process.env.JWT_SECRET, {}, (err, token) => {
       if (err) throw err;
       res.cookie("token", token).json({
         id: userDoc._id,
@@ -58,7 +57,7 @@ app.post("/login", async (req, res) => {
 // get the current user profile from cookies
 app.get("/profile", (req, res) => {
   const { token } = req.cookies;
-  jwt.verify(token, secret, {}, (err, info) => {
+  jwt.verify(token, process.env.JWT_SECRET, {}, (err, info) => {
     if (err) throw err;
     res.json(info);
   });
@@ -78,7 +77,7 @@ app.post("/post", uplodeMiddleware.single("file"), async (req, res) => {
   fs.renameSync(path, newPath);
 
   const { token } = req.cookies;
-  jwt.verify(token, secret, {}, async (err, info) => {
+  jwt.verify(token, process.env.JWT_SECRET, {}, async (err, info) => {
     if (err) throw err;
     const { title, summary, content } = req.body;
     const postDoc = await Post.create({
@@ -105,7 +104,7 @@ app.put("/post", uplodeMiddleware.single("file"), async (req, res) => {
   }
 
   const {token} = req.cookies;
-  jwt.verify(token, secret, {}, async (err, info) => {
+  jwt.verify(token, process.env.JWT_SECRET, {}, async (err, info) => {
     if (err) throw err;
     const { id,title, summary, content } = req.body;
     const postDoc = await Post.findById(id);
@@ -146,7 +145,7 @@ app.get("/post/:id", async (req, res) => {
 // connet to db and listen to app
 const PORT = process.env.PORT || 4000;
 mongoose.connect(
-  "mongodb+srv://capProject:hello@cluster0.zc9ypbh.mongodb.net/test"
+  process.env.MONGO_URL
 ).then(() => {
   console.log("mongodb connected")
   app.listen(PORT, console.log(`server is live ${PORT}`)
